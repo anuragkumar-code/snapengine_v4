@@ -1,7 +1,7 @@
 'use strict';
 
-const invitationService = require('./service/invitation.service');
-const activityLogService = require('./service/albumActivityLog.service');
+const invitationService = require('../service/invitation.service');
+const activityLogService = require('../service/albumActivityLog.service');
 const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
 const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
 
