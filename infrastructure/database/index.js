@@ -16,7 +16,7 @@ const logger = require('../logger');
  *  - Export { sequelize, Sequelize, models } as a single registry.
  *
  * Models are discovered from:
- *  - modules/*/model/*.model.js
+ *  - modules/*//*.model.js
  *
  * Each model file is fully self-contained:
  *  - Defines the model class
