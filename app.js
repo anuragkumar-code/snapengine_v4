@@ -94,6 +94,12 @@ app.use(`${API_PREFIX}/albums`, albumRoutes);
 // Invitation token actions (standalone — not nested under /albums)
 app.use(`${API_PREFIX}/invitations`, albumRoutes);
 
+// Media Module (Phase 3)
+// Photos are scoped under albums; standalone photo/tag/comment routes also available
+const mediaRoutes = require('./modules/media/media.routes');
+app.use(`${API_PREFIX}/albums`, mediaRoutes); // Scoped: /albums/:albumId/photos
+app.use(`${API_PREFIX}`, mediaRoutes);          // Standalone: /photos/:photoId, /tags, /comments
+
 // Phase 3: Media module routes will be added here
 // const photoRoutes = require('./modules/media/photo.routes');
 // app.use(`${API_PREFIX}/photos`, photoRoutes);
