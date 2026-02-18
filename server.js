@@ -77,10 +77,8 @@ const bootstrap = async () => {
   queueSystem.registerWorker(
     QUEUE_NAMES.ACTIVITY_LOG,
     async (job) => {
-      // Activity log processor — persists domain event to DB
-      // Imported lazily to avoid circular dependency at module load time
-      logger.debug('[Worker:ActivityLog] Processing job', { jobName: job.name, data: job.data });
-      // Full implementation added in Phase 2 when ActivityLog model exists
+      const { processActivityLog } = require('./modules/album/workers/activityLogWorker');
+      return processActivityLog(job);
     },
     { concurrency: 10 }
   );

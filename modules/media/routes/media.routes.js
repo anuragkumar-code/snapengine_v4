@@ -1,12 +1,14 @@
+// modules/media/media.routes.js
+
 'use strict';
 
 const { Router } = require('express');
-const photoController = require('./controller/photo.controller');
-const mediaController = require('./controller/media.controller');
-const { authenticate, optionalAuth } = require('../../shared/middleware/authenticate');
-const { validate } = require('../../shared/middleware/validate');
-const { createUploadMiddleware } = require('../../infrastructure/upload');
-const mediaValidator = require('./validators/media.validator');
+const photoController = require('../controller/photo.controller');
+const mediaController = require('../controller/media.controller');
+const { authenticate, optionalAuth } = require('../../../shared/middleware/authenticate');
+const { validate } = require('../../../shared/middleware/validate');
+const { createUploadMiddleware } = require('../../../infrastructure/upload');
+const mediaValidator = require('../validators/media.validator');
 
 /**
  * Media Routes
