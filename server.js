@@ -98,8 +98,8 @@ const bootstrap = async () => {
   queueSystem.registerWorker(
     QUEUE_NAMES.PHOTO_PROCESSING,
     async (job) => {
-      logger.debug('[Worker:PhotoProcessing] Processing job', { jobName: job.name });
-      // Photo resize/thumbnail logic added in Phase 3 (Media context)
+      const { processPhoto } = require('./modules/media/workers/photoProcessor');
+      return processPhoto(job);
     },
     { concurrency: 2 } // Lower concurrency — CPU-intensive image ops
   );
