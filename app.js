@@ -87,22 +87,31 @@ app.use(`${API_PREFIX}/auth`, authRoutes);
 const userRoutes = require('./modules/user/user.routes');
 app.use(`${API_PREFIX}/users`, userRoutes);
 
-// Album Module (Phase 2)
+// // Album Module (Phase 2)
 const albumRoutes = require('./modules/album/album.routes');
+const invitationRoutes = require('./modules/album/invitation.routes'); // NEW - extracted
 app.use(`${API_PREFIX}/albums`, albumRoutes);
+app.use(`${API_PREFIX}/invitations`, invitationRoutes);
 
-// Invitation token actions (standalone — not nested under /albums)
-app.use(`${API_PREFIX}/invitations`, albumRoutes);
 
 // Media Module (Phase 3)
 // Photos are scoped under albums; standalone photo/tag/comment routes also available
-const mediaRoutes = require('./modules/media/media.routes');
-app.use(`${API_PREFIX}/albums`, mediaRoutes); // Scoped: /albums/:albumId/photos
-app.use(`${API_PREFIX}`, mediaRoutes);          // Standalone: /photos/:photoId, /tags, /comments
+const albumPhotoRoutes = require('./modules/media/routes/albumPhoto.routes'); // NEW - scoped
+const photoRoutes = require('./modules/media/routes/photo.routes');           // NEW - standalone
+const tagRoutes = require('./modules/media/routes/tag.routes');               // NEW
+const commentRoutes = require('./modules/media/routes/comment.routes');       // NEW
+app.use(`${API_PREFIX}/albums`, albumPhotoRoutes);  // /:albumId/photos
+app.use(`${API_PREFIX}/photos`, photoRoutes);       // /:photoId
+app.use(`${API_PREFIX}/tags`, tagRoutes);
+app.use(`${API_PREFIX}/comments`, commentRoutes);
 
-// Phase 3: Media module routes will be added here
-// const photoRoutes = require('./modules/media/photo.routes');
-// app.use(`${API_PREFIX}/photos`, photoRoutes);
+// const mediaRoutes = require('./modules/media/media.routes');
+// app.use(`${API_PREFIX}/albums`, mediaRoutes); // Scoped: /albums/:albumId/photos
+// app.use(`${API_PREFIX}`, mediaRoutes);          // Standalone: /photos/:photoId, /tags, /comments
+
+// Trash Module (Soft-delete management)
+const trashRoutes = require('./modules/trash/trash.routes');
+app.use(`${API_PREFIX}/trash`, trashRoutes);
 
 // ── Terminal Middleware ────────────────────────────────────────────────────
 // Must be attached AFTER all routes
