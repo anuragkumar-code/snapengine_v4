@@ -1,6 +1,6 @@
 'use strict';
 
-const albumService = require('./service/album.service');
+const albumService = require('../service/album.service');
 const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
 const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
 
