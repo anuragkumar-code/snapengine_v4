@@ -1,0 +1,9 @@
+'use strict';
+
+const path = require('path');
+
+module.exports = {
+  config: path.resolve('infrastructure/database/cli-config.js'),
+  'migrations-path': path.resolve('infrastructure/database/migrations'),
+  'seeders-path': path.resolve('infrastructure/database/seeders'),
+};

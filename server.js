@@ -57,8 +57,8 @@ const bootstrap = async () => {
   // Development: sync models (create tables if missing)
   // Production: always use migrations — never sync
   if (config.isDevelopment) {
-    await db.sequelize.sync({ alter: false });
-    logger.info('[Server] Database models synchronized (development mode)');
+    // await db.sequelize.sync({ alter: false });
+    // logger.info('[Server] Database models synchronized (development mode)');
   }
 
   // ── 2. Redis ─────────────────────────────────────────────────────────

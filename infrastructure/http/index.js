@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const config = require('../../config');
 const logger = require('../logger');
 const { errorHandler } = require('../../shared/middleware/errorHandler');
-const { notFoundHandler } = require('../../shared/middleware/notFoundHandler');
+const { notFoundHandler } = require('../../shared/middleware/requestLogger');
 const { requestLogger } = require('../../shared/middleware/requestLogger');
 
 /**

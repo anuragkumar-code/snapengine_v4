@@ -83,7 +83,7 @@ router.get(
   '/:albumId/activity',
   authenticate,
   validate(albumValidator.albumIdParam, 'params'),
-  albumController.getActivityLog   // moved from invitationController
+  invitationController.getActivityLog   // moved from invitationController
 );
 
 // ═══════════════════════════════════════════════════════════════════════════

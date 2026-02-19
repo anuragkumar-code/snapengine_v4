@@ -1,105 +1,114 @@
 'use strict';
 
-const { createExpressApp, attachTerminalMiddleware } = require('./infrastructure/http');
-const config = require('./config');
-const logger = require('./infrastructure/logger');
-const db = require('./infrastructure/database');
-const queue = require('./infrastructure/queue');
-const ResponseFormatter = require('./shared/utils/ResponseFormatter');
+const Joi = require('joi');
+const { ValidationError } = require('../utils/AppError');
 
 /**
- * Application Assembly
+ * Validation Middleware + Utility
  *
- * This module:
- *  1. Creates the Express app with base middleware
- *  2. Mounts the health check endpoint
- *  3. Mounts all versioned module routes
- *  4. Attaches terminal middleware (404 + error handler)
- *
- * server.js handles infrastructure bootstrapping (DB, Redis, Queue).
- * app.js is kept pure Express — no async startup logic here.
+ * - Used in routes as Express middleware
+ * - Also reusable in service layer if needed
  */
 
-const app = createExpressApp();
+const defaultOptions = {
+  abortEarly: false,
+  stripUnknown: true,
+  convert: true,
+};
 
-// ── API Prefix ────────────────────────────────────────────────────────────
-const API_PREFIX = `/api/${config.server.apiVersion}`;
-
-// ── Health Check ───────────────────────────────────────────────────────────
 /**
- * @route   GET /health
- * @desc    System health check — used by load balancers and monitoring
- * @access  Public
+ * Express middleware factory
+ *
+ * Usage:
+ *   validate(schema, 'body')
+ *   validate(schema, 'query')
+ *   validate(schema, 'params')
  */
-app.get('/health', async (req, res) => {
-  try {
-    const { getHealthStatus } = require('./infrastructure/queue');
-    const { ping } = require('./infrastructure/redis');
+const validate = (schema, source = 'body', options = {}) => {
+  return (req, res, next) => {
+    const data = req[source];
 
-    const [redisOk, queueStatus] = await Promise.allSettled([
-      ping(),
-      getHealthStatus(),
-    ]);
-
-    // DB check: if models loaded, the connection was tested at startup
-    const dbOk = !!db.sequelize;
-
-    const health = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: config.env,
-      version: process.env.npm_package_version || '1.0.0',
-      services: {
-        database: {
-          status: dbOk ? 'ok' : 'error',
-        },
-        redis: {
-          status: redisOk.status === 'fulfilled' && redisOk.value ? 'ok' : 'error',
-        },
-        queues: {
-          status: queueStatus.status === 'fulfilled' ? 'ok' : 'error',
-          detail: queueStatus.status === 'fulfilled' ? queueStatus.value : null,
-        },
-      },
-    };
-
-    const allHealthy = dbOk &&
-      health.services.redis.status === 'ok';
-
-    return res.status(allHealthy ? 200 : 503).json(health);
-  } catch (err) {
-    logger.error('[Health] Health check error', { error: err.message });
-    return res.status(503).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      message: 'Health check failed',
+    const { error, value } = schema.validate(data, {
+      ...defaultOptions,
+      ...options,
     });
+
+    if (error) {
+      const details = error.details.map((d) => ({
+        field: d.path.join('.'),
+        message: d.message.replace(/['"]/g, ''),
+        type: d.type,
+      }));
+
+      return next(new ValidationError('Validation failed', details));
+    }
+
+    // Replace request data with validated & sanitized value
+    req[source] = value;
+
+    next();
+  };
+};
+
+/**
+ * Direct validation utility (for service-layer use)
+ */
+const validateOrThrow = (schema, data, options = {}) => {
+  const { error, value } = schema.validate(data, {
+    ...defaultOptions,
+    ...options,
+  });
+
+  if (error) {
+    const details = error.details.map((d) => ({
+      field: d.path.join('.'),
+      message: d.message.replace(/['"]/g, ''),
+      type: d.type,
+    }));
+
+    throw new ValidationError('Validation failed', details);
   }
-});
 
-// ── Module Routes ──────────────────────────────────────────────────────────
+  return value;
+};
 
-// Auth Module
-const authRoutes = require('./modules/auth/auth.routes');
-app.use(`${API_PREFIX}/auth`, authRoutes);
+/**
+ * Common reusable schema fragments
+ */
+const commonSchemas = {
+  uuid: Joi.string().uuid({ version: 'uuidv4' }),
 
-// User Module
-const userRoutes = require('./modules/user/user.routes');
-app.use(`${API_PREFIX}/users`, userRoutes);
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .lowercase()
+    .trim()
+    .max(320),
 
-// Album Module (Phase 2)
-const albumRoutes = require('./modules/album/album.routes');
-app.use(`${API_PREFIX}/albums`, albumRoutes);
+  password: Joi.string()
+    .min(8)
+    .max(128)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .messages({
+      'string.pattern.base':
+        'Password must include uppercase, lowercase, and a number',
+    }),
 
-// Invitation token actions (standalone — not nested under /albums)
-app.use(`${API_PREFIX}/invitations`, albumRoutes);
+  mobile: Joi.string()
+    .pattern(/^\+?[1-9]\d{7,14}$/)
+    .messages({
+      'string.pattern.base':
+        'Mobile number must be in international format (e.g. +14155552671)',
+    }),
 
-// Phase 3: Media module routes will be added here
-// const photoRoutes = require('./modules/media/photo.routes');
-// app.use(`${API_PREFIX}/photos`, photoRoutes);
+  pagination: {
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+  },
+};
 
-// ── Terminal Middleware ────────────────────────────────────────────────────
-// Must be attached AFTER all routes
-attachTerminalMiddleware(app);
-
-module.exports = app;
+module.exports = {
+  validate,
+  validateOrThrow,
+  commonSchemas,
+  Joi,
+};

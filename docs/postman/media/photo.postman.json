@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "Album Platform - Media Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-mediamodule0002",
+    "description": "Photo domain endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "photoId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "tagSlug", "value": "" },
+    { "key": "tagId", "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "Photo (Standalone)",
+      "item": [
+
+        {
+          "name": "Get Photo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Update Photo Visibility",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibilityType\": \"RESTRICTED\",\n  \"allowedUserIds\": [\"uuid-user-1\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/visibility",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "visibility"]
+            }
+          }
+        },
+
+        {
+          "name": "Delete Photo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Restore Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "restore"]
+            }
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

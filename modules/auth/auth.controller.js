@@ -1,7 +1,7 @@
 'use strict';
 
-const authService = require('../service/auth.service');
-const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
+const authService = require('./service/auth.service');
+const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
 
 /**
  * Auth Controller

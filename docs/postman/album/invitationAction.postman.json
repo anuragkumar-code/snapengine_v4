@@ -1,0 +1,66 @@
+{
+  "info": {
+    "name": "Album Platform - Albums Invitation Action",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-albumsinvitationactions0001",
+    "description": "Album domain endpoints for invitation action",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
+  ],
+  "item": [
+        {
+        "name": "Invitation Token Actions",
+        "item": [
+
+            {
+            "name": "Preview Invitation",
+            "request": {
+                "method": "GET",
+                "url": {
+                "raw": "{{baseUrl}}/invitations/{{invitationToken}}",
+                "host": ["{{baseUrl}}"],
+                "path": ["invitations", "{{invitationToken}}"]
+                }
+            }
+            },
+
+            {
+            "name": "Accept Invitation",
+            "request": {
+                "method": "POST",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/invitations/{{invitationToken}}/accept",
+                "host": ["{{baseUrl}}"],
+                "path": ["invitations", "{{invitationToken}}", "accept"]
+                }
+            }
+            },
+
+            {
+            "name": "Decline Invitation",
+            "request": {
+                "method": "POST",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/invitations/{{invitationToken}}/decline",
+                "host": ["{{baseUrl}}"],
+                "path": ["invitations", "{{invitationToken}}", "decline"]
+                }
+            }
+            }
+
+        ]
+        }
+    ]
+}

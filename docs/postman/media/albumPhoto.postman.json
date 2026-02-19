@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "Album Platform - Media Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-mediamodule0001",
+    "description": "Album Photo domain endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "photoId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "tagSlug", "value": "" },
+    { "key": "tagId", "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "Album Photos",
+      "item": [
+
+        {
+          "name": "List Photos In Album",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/photos?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}", "photos"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Upload Photo To Album",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "photo", "type": "file", "src": "" },
+                { "key": "metadata", "value": "{\"location\":\"Goa\"}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/photos",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}", "photos"]
+            }
+          }
+        }
+
+      ]
+    }
+  ]
+}

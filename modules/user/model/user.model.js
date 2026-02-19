@@ -3,7 +3,7 @@
 const { Model, DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const { USER_STATUS, USER_ROLE } = require('../../shared/constants');
+const { USER_STATUS, USER_ROLE } = require('../../../shared/constants');
 
 /**
  * User Model

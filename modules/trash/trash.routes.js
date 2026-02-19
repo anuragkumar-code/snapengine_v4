@@ -2,8 +2,8 @@
 
 const { Router } = require('express');
 const trashController = require('./controller/trash.controller');
-const { authenticate } = require('../../../shared/middleware/authenticate');
-const { validate } = require('../../../shared/middleware/validate');
+const { authenticate } = require('../../shared/middleware/authenticate');
+const { validate } = require('../../shared/middleware/validate');
 const Joi = require('joi');
 
 /**
