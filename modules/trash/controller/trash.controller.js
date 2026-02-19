@@ -1,6 +1,6 @@
 'use strict';
 
-const trashService = require('./service/trash.service');
+const trashService = require('../service/trash.service');
 const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
 const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
 

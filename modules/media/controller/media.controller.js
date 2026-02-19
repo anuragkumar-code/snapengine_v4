@@ -1,9 +1,9 @@
 'use strict';
 
-const tagService = require('./service/tag.service');
-const commentService = require('./service/comment.service');
-const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
-const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
+const tagService = require('../service/tag.service');
+const commentService = require('../service/comment.service');
+const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
+const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TAG CONTROLLER

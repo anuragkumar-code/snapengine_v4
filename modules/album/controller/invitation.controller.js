@@ -2,11 +2,11 @@
 
 const invitationService = require('../service/invitation.service');
 const activityLogService = require('../service/albumActivityLog.service');
-const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
-const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
+const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
+const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
 
 /**
- * Invitation Controller
+ * Invitation Controller 
  * HTTP layer only.
  */
 

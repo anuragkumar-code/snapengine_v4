@@ -3,35 +3,71 @@
 const { createLogger, format, transports } = require('winston');
 require('winston-daily-rotate-file');
 const path = require('path');
+const util = require('util');
 const config = require('../../config');
 
-const { combine, timestamp, errors, json, colorize, printf, metadata } = format;
+const {
+  combine,
+  timestamp,
+  errors,
+  json,
+  colorize,
+  printf,
+  metadata,
+} = format;
 
 /**
  * Logger Infrastructure
  *
- * Outputs structured JSON in production (machine-readable for log aggregators).
- * Outputs colorized, human-readable lines in development.
+ * - Development: clean, colorized, human-readable
+ * - Production: structured JSON
  *
- * All log calls accept an optional metadata object as the second argument:
- *   logger.info('User registered', { userId, email });
- *   logger.error('DB connection failed', { error, retryCount });
- *
- * Domain events and activity logs are routed to the 'activity' child logger.
+ * Design goals:
+ *  - Never crash on circular structures
+ *  - Never leak internal Winston symbols
+ *  - Keep metadata readable but controlled
  */
 
-// ── Format: Development (human-readable) ──────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Development Format (clean + circular-safe + no symbol leakage)
+// ───────────────────────────────────────────────────────────────────────────
 const devFormat = combine(
   colorize({ all: true }),
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }),
-  printf(({ timestamp, level, message, stack, ...meta }) => {
-    const metaStr = Object.keys(meta).length ? `\n  ${JSON.stringify(meta, null, 2)}` : '';
-    return `[${timestamp}] ${level}: ${message}${stack ? `\n${stack}` : ''}${metaStr}`;
+  printf((info) => {
+    const { timestamp, level, message, stack } = info;
+
+    // Extract only enumerable string keys (ignore Symbols)
+    const meta = {};
+    for (const key of Object.keys(info)) {
+      if (!['timestamp', 'level', 'message', 'stack'].includes(key)) {
+        meta[key] = info[key];
+      }
+    }
+
+    let metaStr = '';
+
+    if (Object.keys(meta).length > 0) {
+      metaStr =
+        '\n  ' +
+        util.inspect(meta, {
+          depth: 3,          // prevent deep ORM explosions
+          colors: true,
+          compact: false,
+          breakLength: 120,
+        });
+    }
+
+    return `[${timestamp}] ${level}: ${message}${
+      stack ? `\n${stack}` : ''
+    }${metaStr}`;
   })
 );
 
-// ── Format: Production (structured JSON) ──────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Production Format (structured JSON, log-aggregator friendly)
+// ───────────────────────────────────────────────────────────────────────────
 const prodFormat = combine(
   timestamp(),
   errors({ stack: true }),
@@ -39,13 +75,17 @@ const prodFormat = combine(
   json()
 );
 
-// ── Transport: Console ─────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Console Transport
+// ───────────────────────────────────────────────────────────────────────────
 const consoleTransport = new transports.Console({
   format: config.isProduction ? prodFormat : devFormat,
   silent: config.env === 'test',
 });
 
-// ── Transport: Rotating file (all levels) ─────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Rotating File Transports
+// ───────────────────────────────────────────────────────────────────────────
 const combinedFileTransport = new transports.DailyRotateFile({
   dirname: config.logging.dir,
   filename: 'combined-%DATE%.log',
@@ -56,7 +96,6 @@ const combinedFileTransport = new transports.DailyRotateFile({
   auditFile: path.join(config.logging.dir, '.audit-combined.json'),
 });
 
-// ── Transport: Rotating file (errors only) ────────────────────────────────
 const errorFileTransport = new transports.DailyRotateFile({
   dirname: config.logging.dir,
   filename: 'error-%DATE%.log',
@@ -68,7 +107,6 @@ const errorFileTransport = new transports.DailyRotateFile({
   auditFile: path.join(config.logging.dir, '.audit-error.json'),
 });
 
-// ── Transport: Activity log (domain events only) ──────────────────────────
 const activityFileTransport = new transports.DailyRotateFile({
   dirname: path.join(config.logging.dir, 'activity'),
   filename: 'activity-%DATE%.log',
@@ -79,7 +117,9 @@ const activityFileTransport = new transports.DailyRotateFile({
   auditFile: path.join(config.logging.dir, '.audit-activity.json'),
 });
 
-// ── Root logger ───────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Root Logger
+// ───────────────────────────────────────────────────────────────────────────
 const logger = createLogger({
   level: config.logging.level,
   defaultMeta: {
@@ -91,19 +131,18 @@ const logger = createLogger({
     combinedFileTransport,
     errorFileTransport,
   ],
-  // Do not crash process on uncaught exception in logger itself
   exitOnError: false,
 });
 
-// ── Activity child logger (for domain event audit trails) ─────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// Activity Child Logger
+// ───────────────────────────────────────────────────────────────────────────
 logger.activity = logger.child({ context: 'activity' });
 logger.activity.add(activityFileTransport);
 
-// ── HTTP request logger helper ────────────────────────────────────────────
-/**
- * Use in Morgan or custom request logging middleware.
- * Produces a single structured log line per request.
- */
+// ───────────────────────────────────────────────────────────────────────────
+// HTTP Request Helper
+// ───────────────────────────────────────────────────────────────────────────
 logger.httpRequest = (req, res, responseTime) => {
   logger.info('HTTP Request', {
     method: req.method,

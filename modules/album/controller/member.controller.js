@@ -1,8 +1,8 @@
 'use strict';
 
 const memberService = require('../service/albumMember.service');
-const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
-const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
+const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
+const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
 
 /**
  * Member Controller

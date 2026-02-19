@@ -27,13 +27,21 @@ const updateProfileSchema = Joi.object({
 
 const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required(),
+
   newPassword: Joi.string()
     .min(8)
     .max(128)
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .required()
-    .message('New password must include uppercase, lowercase, and a number'),
+    .messages({
+      'string.pattern.base':
+        'New password must include uppercase, lowercase, and a number',
+      'string.min': 'Password must be at least 8 characters long',
+      'string.max': 'Password must be at most 128 characters long',
+      'any.required': 'New password is required',
+    }),
 });
+
 
 // ── Service Methods ────────────────────────────────────────────────────────
 

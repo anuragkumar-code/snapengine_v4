@@ -1,9 +1,9 @@
 'use strict';
 
-const photoService = require('./service/photo.service');
-const ResponseFormatter = require('../../shared/utils/ResponseFormatter');
-const { parsePagination, buildMeta } = require('../../shared/utils/pagination');
-const { ValidationError } = require('../../shared/utils/AppError');
+const photoService = require('../service/photo.service');
+const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
+const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
+const { ValidationError } = require('../../../shared/utils/AppError');
 
 /**
  * Photo Controller

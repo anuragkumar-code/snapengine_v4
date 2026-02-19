@@ -32,9 +32,13 @@ const sequelize = new Sequelize(
     host: config.database.host,
     port: config.database.port,
     dialect: 'postgres',
-    logging: (sql, timing) => {
+    benchmark: true,
+    logging: (sql, executionTime) => {
       if (config.isDevelopment) {
-        logger.debug('SQL Query', { sql, timing });
+        logger.debug('SQL Query', {
+          sql,
+          executionTimeMs: executionTime,
+        });
       }
     },
     pool: {
@@ -104,7 +108,7 @@ function loadModels() {
       // Each model file exports a function: (sequelize) => ModelClass
       const model = modelDefiner(sequelize);
       db[model.name] = model;
-      logger.debug(`[DB] Model loaded: ${model.name}`);
+      // logger.debug(`[DB] Model loaded: ${model.name}`);
     } catch (err) {
       logger.error(`[DB] Failed to load model from ${filePath}`, { error: err.message });
       throw err;
