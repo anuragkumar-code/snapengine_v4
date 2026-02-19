@@ -1,0 +1,77 @@
+{
+  "info": {
+    "name": "Album Platform - Albums Invitation",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-albumsinvitation0001",
+    "description": "Album domain endpoints for invitations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
+  ],
+  "item": [
+        {
+        "name": "Album Invitations",
+        "item": [
+
+            {
+            "name": "List Invitations",
+            "request": {
+                "method": "GET",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/invitations?page=1&limit=20",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "invitations"],
+                "query": [
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                ]
+                }
+            }
+            },
+
+            {
+            "name": "Create Invitation",
+            "request": {
+                "method": "POST",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                "mode": "raw",
+                "raw": "{\n  \"invitedEmail\": \"friend@example.com\",\n  \"invitedRole\": \"viewer\",\n  \"note\": \"Join us!\",\n  \"maxUses\": 1\n}"
+                },
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/invitations",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "invitations"]
+                }
+            }
+            },
+
+            {
+            "name": "Revoke Invitation",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/invitations/{{invitationId}}",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "invitations", "{{invitationId}}"]
+                }
+            }
+            }
+        ]
+        }
+    ]
+}

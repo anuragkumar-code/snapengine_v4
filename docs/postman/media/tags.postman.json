@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "Album Platform - Media Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-mediamodule0004",
+    "description": "Tag domain endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "photoId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "tagSlug", "value": "" },
+    { "key": "tagId", "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "Tags",
+      "item": [
+
+        {
+          "name": "Tag Autocomplete",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags/autocomplete?q=go",
+              "host": ["{{baseUrl}}"],
+              "path": ["tags", "autocomplete"],
+              "query": [
+                { "key": "q", "value": "go" }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "List Popular Tags",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags/popular",
+              "host": ["{{baseUrl}}"],
+              "path": ["tags", "popular"]
+            }
+          }
+        },
+
+        {
+          "name": "Search Photos By Tag",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/tags/{{tagSlug}}/photos?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["tags", "{{tagSlug}}", "photos"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Add Tags To Photo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tags\": [\"beach\", \"sunset\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/tags",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "tags"]
+            }
+          }
+        },
+
+        {
+          "name": "Remove Tag From Photo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tagId\": \"{{tagId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/tags",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "tags"]
+            }
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

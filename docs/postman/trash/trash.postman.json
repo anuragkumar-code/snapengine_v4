@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "Album Platform - Trash Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-trashmodule0001",
+    "description": "Soft-deleted album and photo management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Trash",
+      "item": [
+
+        {
+          "name": "List Trashed Albums",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trash/albums?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["trash", "albums"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Paginated list of authenticated user's soft-deleted albums"
+          }
+        },
+
+        {
+          "name": "List Trashed Photos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trash/photos?page=1&limit=20&albumId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["trash", "photos"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "albumId", "value": "" }
+              ]
+            },
+            "description": "Paginated list of authenticated user's soft-deleted photos (optionally filter by albumId)"
+          }
+        },
+
+        {
+          "name": "Empty Album Trash",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trash/albums",
+              "host": ["{{baseUrl}}"],
+              "path": ["trash", "albums"]
+            },
+            "description": "Permanently delete all trashed albums belonging to the authenticated user"
+          }
+        },
+
+        {
+          "name": "Empty Photo Trash",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/trash/photos",
+              "host": ["{{baseUrl}}"],
+              "path": ["trash", "photos"]
+            },
+            "description": "Permanently delete all trashed photos belonging to the authenticated user"
+          }
+        }
+
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "info": {
+    "name": "Album Platform - Media Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-mediamodule0003",
+    "description": "Comment domain endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "photoId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "tagSlug", "value": "" },
+    { "key": "tagId", "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "Comments",
+      "item": [
+
+        {
+          "name": "List Comments For Photo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/comments?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "comments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Amazing shot!\",\n  \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/photos/{{photoId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["photos", "{{photoId}}", "comments"]
+            }
+          }
+        },
+
+        {
+          "name": "Edit Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          }
+        }
+
+      ]
+    }
+
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Album Platform - Albums Member",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-albumsmember0001",
+    "description": "Album domain endpoints for members",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
+  ],
+  "item": [
+        {
+        "name": "Album Members",
+        "item": [
+
+            {
+            "name": "List Members",
+            "request": {
+                "method": "GET",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members?page=1&limit=20",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members"],
+                "query": [
+                    { "key": "page", "value": "1" },
+                    { "key": "limit", "value": "20" }
+                ]
+                }
+            }
+            },
+
+            {
+            "name": "Add Member",
+            "request": {
+                "method": "POST",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                "mode": "raw",
+                "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"role\": \"viewer\"\n}"
+                },
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members"]
+                }
+            }
+            },
+
+            {
+            "name": "Remove Member",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members/{{userId}}",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members", "{{userId}}"]
+                }
+            }
+            },
+
+            {
+            "name": "Change Member Role",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                "mode": "raw",
+                "raw": "{\n  \"role\": \"contributor\"\n}"
+                },
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members/{{userId}}/role",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members", "{{userId}}", "role"]
+                }
+            }
+            },
+
+            {
+            "name": "Get Effective Permissions",
+            "request": {
+                "method": "GET",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members/{{userId}}/permissions",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members", "{{userId}}", "permissions"]
+                }
+            }
+            },
+
+            {
+            "name": "Set Permission Override",
+            "request": {
+                "method": "PUT",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+                { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                "mode": "raw",
+                "raw": "{\n  \"action\": \"ADD_PHOTO\",\n  \"granted\": true,\n  \"reason\": \"Temporary access\"\n}"
+                },
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members/{{userId}}/permissions/overrides",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members", "{{userId}}", "permissions", "overrides"]
+                }
+            }
+            },
+
+            {
+            "name": "Remove Permission Override",
+            "request": {
+                "method": "DELETE",
+                "header": [
+                { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+                ],
+                "url": {
+                "raw": "{{baseUrl}}/albums/{{albumId}}/members/{{userId}}/permissions/overrides/ADD_PHOTO",
+                "host": ["{{baseUrl}}"],
+                "path": ["albums", "{{albumId}}", "members", "{{userId}}", "permissions", "overrides", "ADD_PHOTO"]
+                }
+            }
+            }
+        ]
+        }
+    ]
+}

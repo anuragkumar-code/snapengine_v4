@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "Album Platform - Albums Module",
+    "_postman_id": "c1a5f8a0-0000-0000-0000-albumsmodule0001",
+    "description": "Album domain endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "albumId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "invitationToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Albums",
+      "item": [
+
+        {
+          "name": "List Albums",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/albums?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Create Album",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kerala Trip\",\n  \"description\": \"7 day trip memories\",\n  \"date\": \"2025-01-15\",\n  \"isPublic\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/albums",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums"]
+            }
+          }
+        },
+
+        {
+          "name": "Get Album",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Get Album By Public Token",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/albums/public/{{invitationToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "public", "{{invitationToken}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Update Album",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Album Name\",\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Delete Album",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}"]
+            }
+          }
+        },
+
+        {
+          "name": "Restore Album",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}", "restore"]
+            }
+          }
+        },
+
+        {
+          "name": "Album Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/activity?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["albums", "{{albumId}}", "activity"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
