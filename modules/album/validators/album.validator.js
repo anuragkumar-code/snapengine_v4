@@ -34,6 +34,8 @@ const updateAlbum = Joi.object({
   date: Joi.date().iso().max('now').allow(null).optional(),
   isPublic: Joi.boolean().optional(),
   metadata: Joi.object().max(20).optional(),
+  coverPhotoId: Joi.string().uuid().allow(null).optional()
+    .messages({ 'string.guid': 'coverPhotoId must be a valid UUID' }),
 }).min(1).messages({ 'object.min': 'At least one field must be provided for update' });
 
 const listAlbums = Joi.object({

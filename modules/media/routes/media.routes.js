@@ -1,13 +1,12 @@
-// modules/media/media.routes.js
-
 'use strict';
 
 const { Router } = require('express');
 const photoController = require('../controller/photo.controller');
+const photoBulkController = require('../controller/photoBulk.controller');
 const mediaController = require('../controller/media.controller');
 const { authenticate, optionalAuth } = require('../../../shared/middleware/authenticate');
 const { validate } = require('../../../shared/middleware/validate');
-const { createUploadMiddleware } = require('../../../infrastructure/upload');
+const { createUploadMiddleware } = require('../../infrastructure/upload');
 const mediaValidator = require('../validators/media.validator');
 
 /**
@@ -22,12 +21,36 @@ const mediaValidator = require('../validators/media.validator');
 
 const router = Router();
 
-// Photo upload middleware — handles multipart/form-data
-const photoUpload = createUploadMiddleware({
+// Photo upload middleware — handles both single and multiple files
+const photoUploadSingle = createUploadMiddleware({
   fieldName: 'photo',
-  maxSize: 10 * 1024 * 1024, // 10MB
+  maxSize: 10 * 1024 * 1024, // 10MB per file
   allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
 });
+
+const photoUploadMultiple = createUploadMiddleware({
+  fieldName: 'photos',
+  maxSize: 10 * 1024 * 1024, // 10MB per file
+  maxCount: 20,               // Max 20 files
+  allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+});
+
+// Combined middleware that tries multiple field first, falls back to single
+const photoUpload = (req, res, next) => {
+  // Try multi-file upload first
+  photoUploadMultiple.array('photos')(req, res, (err) => {
+    if (!err && req.files && req.files.length > 0) {
+      // Multi-file upload succeeded
+      return next();
+    }
+    
+    // Try single-file upload
+    photoUploadSingle.single('photo')(req, res, (err) => {
+      if (err) return next(err);
+      next();
+    });
+  });
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PHOTO ROUTES (scoped to album)
@@ -48,15 +71,42 @@ router.get(
 
 /**
  * @route   POST /api/v1/albums/:albumId/photos
- * @desc    Upload a photo to an album
+ * @desc    Upload photo(s) to an album (supports single or multiple files)
  * @access  Authenticated — Contributor+ role
+ * @body    Single: { photo: <file> } | Bulk: { photos: [<file1>, <file2>, ...] }
  */
 router.post(
   '/:albumId/photos',
   authenticate,
-  photoUpload.single('photo'),
+  photoUpload,
   validate(mediaValidator.albumIdParam, 'params'),
   photoController.upload
+);
+
+/**
+ * @route   POST /api/v1/albums/:albumId/photos/bulk-delete
+ * @desc    Bulk delete photos (move to trash)
+ * @access  Authenticated — Uploader or Album Admin+
+ */
+router.post(
+  '/:albumId/photos/bulk-delete',
+  authenticate,
+  validate(mediaValidator.albumIdParam, 'params'),
+  validate(mediaValidator.bulkDeletePhotos, 'body'),
+  photoBulkController.bulkDelete
+);
+
+/**
+ * @route   POST /api/v1/albums/:albumId/photos/bulk-visibility
+ * @desc    Bulk change photo visibility
+ * @access  Authenticated — Uploader or Album Admin+
+ */
+router.post(
+  '/:albumId/photos/bulk-visibility',
+  authenticate,
+  validate(mediaValidator.albumIdParam, 'params'),
+  validate(mediaValidator.bulkChangeVisibility, 'body'),
+  photoBulkController.bulkChangeVisibility
 );
 
 // ═══════════════════════════════════════════════════════════════════════════

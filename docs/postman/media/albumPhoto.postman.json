@@ -2,20 +2,16 @@
   "info": {
     "name": "Album Platform - Media Module",
     "_postman_id": "c1a5f8a0-0000-0000-0000-mediamodule0001",
-    "description": "Album Photo domain endpoints",
+    "description": "Album Photo domain endpoints including bulk operations",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
     { "key": "accessToken", "value": "" },
     { "key": "albumId", "value": "" },
-    { "key": "photoId", "value": "" },
-    { "key": "commentId", "value": "" },
-    { "key": "tagSlug", "value": "" },
-    { "key": "tagId", "value": "" }
+    { "key": "photoId", "value": "" }
   ],
   "item": [
-
     {
       "name": "Album Photos",
       "item": [
@@ -37,7 +33,7 @@
         },
 
         {
-          "name": "Upload Photo To Album",
+          "name": "Upload Photo(s) To Album",
           "request": {
             "method": "POST",
             "header": [
@@ -46,15 +42,81 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "photo", "type": "file", "src": "" },
-                { "key": "metadata", "value": "{\"location\":\"Goa\"}", "type": "text" }
+                {
+                  "key": "photos",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "metadata",
+                  "value": "{\"location\":\"Goa\"}",
+                  "type": "text"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/albums/{{albumId}}/photos",
               "host": ["{{baseUrl}}"],
               "path": ["albums", "{{albumId}}", "photos"]
-            }
+            },
+            "description": "Supports single file (photo) or multiple files (photos[])"
+          }
+        },
+
+        {
+          "name": "Bulk Delete Photos",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photoIds\": [\n    \"uuid-photo-1\",\n    \"uuid-photo-2\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/photos/bulk-delete",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "albums",
+                "{{albumId}}",
+                "photos",
+                "bulk-delete"
+              ]
+            },
+            "description": "Moves multiple photos to trash (max 100)"
+          }
+        },
+
+        {
+          "name": "Bulk Change Photo Visibility",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"photoIds\": [\n    \"uuid-photo-1\",\n    \"uuid-photo-2\"\n  ],\n  \"visibilityType\": \"RESTRICTED\",\n  \"allowedUserIds\": [\n    \"uuid-user-1\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/albums/{{albumId}}/photos/bulk-visibility",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "albums",
+                "{{albumId}}",
+                "photos",
+                "bulk-visibility"
+              ]
+            },
+            "description": "Bulk visibility update (max 100 photos)"
           }
         }
 
