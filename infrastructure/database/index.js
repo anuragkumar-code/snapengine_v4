@@ -33,6 +33,7 @@ const sequelize = new Sequelize(
     port: config.database.port,
     dialect: 'postgres',
     benchmark: true,
+    // logging: console.log,
     logging: (sql, executionTime) => {
       if (config.isDevelopment) {
         logger.debug('SQL Query', {
