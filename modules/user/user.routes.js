@@ -12,7 +12,12 @@ const { storageProvider } = require('../../infrastructure/upload');
 
 const getProfile = async (req, res, next) => {
   try {
-    const targetId = req.params.id === 'me' ? req.user.id : req.params.id;
+    let targetId = req.params.id;
+
+    if (!targetId || targetId === 'me') {
+      targetId = req.user.id;
+    }
+
     const user = await userService.getProfile(targetId, req.user);
     return ResponseFormatter.success(res, { user });
   } catch (err) {
@@ -22,8 +27,18 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const targetId = req.params.id === 'me' ? req.user.id : req.params.id;
-    const user = await userService.updateProfile(targetId, req.body, req.user);
+    let targetId = req.params.id;
+
+    if (!targetId || targetId === 'me') {
+      targetId = req.user.id;
+    }
+
+    const user = await userService.updateProfile(
+      targetId,
+      req.body,
+      req.user
+    );
+
     return ResponseFormatter.success(res, { user }, 200, 'Profile updated');
   } catch (err) {
     next(err);

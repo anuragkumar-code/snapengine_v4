@@ -52,6 +52,8 @@ const changePasswordSchema = Joi.object({
  */
 const getProfile = async (requestedId, requester) => {
   const { User } = db;
+  
+  console.log(requestedId);
 
   const user = await User.findByPk(requestedId);
   if (!user) throw new NotFoundError('User');
