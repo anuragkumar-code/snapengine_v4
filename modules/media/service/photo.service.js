@@ -7,7 +7,7 @@ const { JOB_NAMES, PHOTO_STATUS, PHOTO_VISIBILITY, ACTIVITY_TYPE } = require('..
 const albumPermissionService = require('../../album/service/albumPermission.service');
 const photoVisibilityService = require('./photoVisibility.service');
 const activityLogService = require('../../album/service/albumActivityLog.service');
-const { NotFoundError, ForbiddenError } = require('../../../shared/utils/AppError');
+const { NotFoundError, ForbiddenError, ValidationError } = require('../../../shared/utils/AppError');
 const logger = require('../../../infrastructure/logger');
 
 /**
@@ -35,63 +35,113 @@ const logger = require('../../../infrastructure/logger');
  *  - Single photo fetch uses resolvePhotoVisibility() after album check
  */
 
-// ── Upload Photo ───────────────────────────────────────────────────────────
+// ── Upload Photo(s) ────────────────────────────────────────────────────────
 /**
- * Upload a photo to an album and queue for processing.
+ * Upload one or more photos to an album and queue for processing.
+ * Supports both single and bulk uploads.
  *
  * @param {string} albumId
- * @param {Buffer} fileBuffer
- * @param {string} filename
- * @param {string} mimeType
+ * @param {Array<{buffer: Buffer, filename: string, mimetype: string}>} files - Array of file objects
  * @param {string} userId
  * @param {string} systemRole
  * @param {object} [metadata={}] - Optional EXIF, GPS, camera info
- * @returns {Promise<Photo>}
+ * @returns {Promise<{ uploaded: Photo[], failed: Array }>}
  */
-const uploadPhoto = async (albumId, fileBuffer, filename, mimeType, userId, systemRole, metadata = {}) => {
+const uploadPhoto = async (albumId, files, userId, systemRole, metadata = {}) => {
   // ── Permission check ───────────────────────────────────────────────────
   await albumPermissionService.assertPermission(albumId, userId, 'photo:upload', systemRole);
 
   const { Photo } = db;
 
-  // ── Save file to storage ───────────────────────────────────────────────
-  const uploadResult = await storageProvider.save(fileBuffer, filename, mimeType, 'photos');
+  // Support single file (convert to array for uniform processing)
+  const fileArray = Array.isArray(files) ? files : [files];
 
-  // ── Create Photo record (status=PENDING) ───────────────────────────────
-  const photo = await Photo.create({
-    albumId,
-    uploadedById: userId,
-    originalFilename: filename,
-    fileUrl: uploadResult.url,
-    storageKey: uploadResult.key,
-    mimeType,
-    sizeBytes: uploadResult.size,
-    status: PHOTO_STATUS.PENDING,
-    visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT,
-    metadata,
-  });
+  if (fileArray.length === 0) {
+    throw new ValidationError('No files provided');
+  }
 
-  // ── Dispatch to processing queue ───────────────────────────────────────
-  await dispatch(QUEUE_NAMES.PHOTO_PROCESSING, JOB_NAMES.PHOTO_RESIZE, {
-    photoId: photo.id,
-    storageKey: uploadResult.key,
-    mimeType,
-  });
+  if (fileArray.length > 20) {
+    throw new ValidationError('Cannot upload more than 20 files at once');
+  }
 
-  logger.info('[PhotoService] Photo uploaded', {
-    photoId: photo.id, albumId, userId, filename, size: uploadResult.size,
-  });
+  const uploaded = [];
+  const failed = [];
 
-  await activityLogService.logActivity({
-    albumId,
-    actorId: userId,
-    type: ACTIVITY_TYPE.PHOTO_UPLOADED,
-    targetId: photo.id,
-    targetType: 'photo',
-    metadata: { filename, sizeBytes: uploadResult.size },
-  });
+  // ── Process each file ──────────────────────────────────────────────────
+  for (const file of fileArray) {
+    try {
+      // Save file to storage
+      const uploadResult = await storageProvider.save(
+        file.buffer,
+        file.filename,
+        file.mimetype,
+        'photos'
+      );
 
-  return photo.toSafeJSON();
+      // Create Photo record (status=PENDING)
+      const photo = await Photo.create({
+        albumId,
+        uploadedById: userId,
+        originalFilename: file.filename,
+        fileUrl: uploadResult.url,
+        storageKey: uploadResult.key,
+        mimeType: file.mimetype,
+        sizeBytes: uploadResult.size,
+        status: PHOTO_STATUS.PENDING,
+        visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT,
+        metadata,
+      });
+
+      // Dispatch to processing queue
+      await dispatch(QUEUE_NAMES.PHOTO_PROCESSING, JOB_NAMES.PHOTO_RESIZE, {
+        photoId: photo.id,
+        storageKey: uploadResult.key,
+        mimeType: file.mimetype,
+      });
+
+      uploaded.push(photo.toSafeJSON());
+
+      logger.info('[PhotoService] Photo uploaded', {
+        photoId: photo.id,
+        albumId,
+        userId,
+        filename: file.filename,
+        size: uploadResult.size,
+      });
+    } catch (err) {
+      // Log error and continue with next file
+      logger.error('[PhotoService] Photo upload failed', {
+        albumId,
+        userId,
+        filename: file.filename,
+        error: err.message,
+      });
+
+      failed.push({
+        filename: file.filename,
+        error: err.message,
+        status: 'error',
+      });
+    }
+  }
+
+  // Log activity (bulk if multiple files)
+  if (uploaded.length > 0) {
+    await activityLogService.logActivity({
+      albumId,
+      actorId: userId,
+      type: ACTIVITY_TYPE.PHOTO_UPLOADED,
+      targetId: uploaded.length === 1 ? uploaded[0].id : null,
+      targetType: 'photo',
+      metadata: {
+        count: uploaded.length,
+        totalSize: uploaded.reduce((sum, p) => sum + p.sizeBytes, 0),
+        bulk: uploaded.length > 1,
+      },
+    });
+  }
+
+  return { uploaded, failed };
 };
 
 // ── List Photos (with visibility filtering) ───────────────────────────────

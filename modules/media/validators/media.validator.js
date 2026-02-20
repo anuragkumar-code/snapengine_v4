@@ -107,6 +107,51 @@ const commentIdParam = Joi.object({
   commentId: Joi.string().uuid().required(),
 });
 
+// ── Bulk Operations ────────────────────────────────────────────────────────
+const bulkDeletePhotos = Joi.object({
+  photoIds: Joi.array()
+    .items(Joi.string().uuid())
+    .min(1)
+    .max(100)
+    .required()
+    .messages({
+      'array.min': 'At least one photo ID is required',
+      'array.max': 'Cannot delete more than 100 photos at once',
+    }),
+});
+
+const bulkChangeVisibility = Joi.object({
+  photoIds: Joi.array()
+    .items(Joi.string().uuid())
+    .min(1)
+    .max(100)
+    .required()
+    .messages({
+      'array.min': 'At least one photo ID is required',
+      'array.max': 'Cannot update more than 100 photos at once',
+    }),
+
+  visibilityType: Joi.string()
+    .valid(...Object.values(PHOTO_VISIBILITY))
+    .required()
+    .messages({
+      'any.only': `Visibility type must be one of: ${Object.values(PHOTO_VISIBILITY).join(', ')}`,
+    }),
+
+  allowedUserIds: Joi.array()
+    .items(Joi.string().uuid())
+    .default([])
+    .when('visibilityType', {
+      is: PHOTO_VISIBILITY.RESTRICTED,
+      then: Joi.array().min(1).required().messages({
+        'array.min': 'At least one user must be specified for restricted photos',
+      }),
+      otherwise: Joi.array().max(0).messages({
+        'array.max': 'allowedUserIds should only be provided for restricted photos',
+      }),
+    }),
+});
+
 module.exports = {
   listPhotos,
   updatePhotoVisibility,
@@ -121,4 +166,6 @@ module.exports = {
   editComment,
   listComments,
   commentIdParam,
+  bulkDeletePhotos,
+  bulkChangeVisibility,
 };

@@ -199,6 +199,30 @@ const updateAlbum = async (albumId, data, userId, systemRole, ipAddress) => {
     updates.date = data.date;
   }
 
+  // ── Cover photo validation ────────────────────────────────────────────
+  if (data.coverPhotoId !== undefined) {
+    if (data.coverPhotoId !== null) {
+      // Validate photo exists, belongs to album, and is ready
+      const { Photo } = db;
+      const coverPhoto = await Photo.findByPk(data.coverPhotoId);
+      
+      if (!coverPhoto) {
+        throw new NotFoundError('Cover photo not found');
+      }
+      
+      if (coverPhoto.albumId !== albumId) {
+        throw new ConflictError('Cover photo must belong to this album');
+      }
+      
+      if (coverPhoto.status !== 'ready') {
+        throw new ConflictError('Cover photo must be fully processed (status: ready)');
+      }
+    }
+    
+    before.coverPhotoId = album.coverPhotoId;
+    updates.coverPhotoId = data.coverPhotoId;
+  }
+
   // ── Visibility transition ──────────────────────────────────────────
   if (data.isPublic !== undefined && data.isPublic !== album.isPublic) {
     before.isPublic = album.isPublic;
