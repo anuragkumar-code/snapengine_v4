@@ -113,6 +113,10 @@ app.use(`${API_PREFIX}/comments`, commentRoutes);
 const trashRoutes = require('./modules/trash/trash.routes');
 app.use(`${API_PREFIX}/trash`, trashRoutes);
 
+// Search Module (Global search)
+const searchRoutes = require('./modules/search/search.routes');
+app.use(`${API_PREFIX}/search`, searchRoutes);
+
 // ── Terminal Middleware ────────────────────────────────────────────────────
 // Must be attached AFTER all routes
 attachTerminalMiddleware(app);
