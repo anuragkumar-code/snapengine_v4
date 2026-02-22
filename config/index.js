@@ -118,7 +118,7 @@ const config = {
   },
 
   cors: {
-    origin: _optional('CORS_ORIGIN', 'http://localhost:3000').split(','),
+    origin: _optional('CORS_ORIGIN', 'http://localhost:8084').split(','),
   },
 };
 

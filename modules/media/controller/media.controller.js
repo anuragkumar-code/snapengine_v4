@@ -108,7 +108,7 @@ const listComments = async (req, res, next) => {
       { page, limit }
     );
 
-    return ResponseFormatter.paginated(result.comments, buildMeta(result.total, page, limit));
+    return ResponseFormatter.paginated(res, result.comments, buildMeta(result.total, page, limit));
   } catch (err) {
     next(err);
   }
