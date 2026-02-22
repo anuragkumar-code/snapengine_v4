@@ -39,6 +39,8 @@ const createExpressApp = () => {
     helmet({
       contentSecurityPolicy: config.isProduction,
       crossOriginEmbedderPolicy: false, // Needed for some API consumers
+      // Allow frontend app origin (e.g. localhost:8084) to render uploaded images from this API origin.
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
       hsts: config.isProduction
         ? {
             maxAge: 31536000,         // 1 year

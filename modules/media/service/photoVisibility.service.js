@@ -1,137 +1,210 @@
 'use strict';
 
-const { Model, DataTypes } = require('sequelize');
-const { v4: uuidv4 } = require('uuid');
+const { Op } = require('sequelize');
+const db = require('../../../infrastructure/database');
+const albumPermissionService = require('../../album/service/albumPermission.service');
+const { PHOTO_VISIBILITY } = require('../../../shared/constants');
+const {
+  NotFoundError,
+  ForbiddenError,
+  ValidationError,
+} = require('../../../shared/utils/AppError');
 
 /**
- * Comment Model
+ * PhotoVisibilityService
  *
- * Threaded comments on photos.
- *
- * Threading:
- *  - parentId: null  → top-level comment
- *  - parentId: UUID  → reply to another comment
- *
- * Visibility:
- *  - Comment visibility INHERITS from the photo's visibility.
- *  - If you can see the photo, you can see all comments on it.
- *  - If photo is RESTRICTED and you're not in the allowlist, you cannot see comments.
- *  - Comments are NOT independently access-controlled.
- *
- * Soft Delete:
- *  - Deleted comments show as "[deleted]" placeholder if they have replies
- *  - If no replies, comment is removed from tree entirely (hard delete after 30 days)
- *
- * Associations:
- *  - BelongsTo Photo
- *  - BelongsTo User (author)
- *  - BelongsTo Comment (parent, for threading)
- *  - HasMany Comment (replies)
+ * Owns all per-photo visibility logic:
+ *  - Query filters/includes for list/search endpoints
+ *  - Single-photo visibility checks
+ *  - Visibility updates + restricted allowlist persistence
  */
 
-module.exports = (sequelize) => {
-  class Comment extends Model {
-    /**
-     * Check if this is a top-level comment (not a reply).
-     */
-    isTopLevel() {
-      return this.parentId === null;
-    }
+/**
+ * Build WHERE clause for listing/searching photos in a specific album.
+ * Requires the album owner id for owner bypass decisions.
+ */
+const buildVisibilityFilter = (userId, albumOwnerId) => {
+  // Album owner can see all photo visibility states.
+  if (userId && albumOwnerId && userId === albumOwnerId) {
+    return {};
+  }
 
-    /**
-     * Safe JSON — exclude internal flags.
-     */
-    toSafeJSON() {
-      const { deletedAt, ...safe } = this.get({ plain: true });
-      return safe;
-    }
+  // Unauthenticated users can only see album-default photos.
+  if (!userId) {
+    return { visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT };
+  }
 
-    static associate(models) {
-      Comment.belongsTo(models.Photo, {
-        foreignKey: 'photoId',
-        as: 'photo',
-      });
+  return {
+    [Op.or]: [
+      { visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT },
+      { visibilityType: PHOTO_VISIBILITY.HIDDEN, uploadedById: userId },
+      { visibilityType: PHOTO_VISIBILITY.RESTRICTED, uploadedById: userId },
+      {
+        visibilityType: PHOTO_VISIBILITY.RESTRICTED,
+        '$visibilityAllowlist.userId$': userId,
+      },
+    ],
+  };
+};
 
-      Comment.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'user',
-      });
+/**
+ * Build include used by buildVisibilityFilter for restricted-photo allowlist checks.
+ */
+const buildVisibilityInclude = (userId) => {
+  const include = {
+    model: db.PhotoVisibility,
+    as: 'visibilityAllowlist',
+    attributes: ['id', 'userId'],
+    required: false,
+  };
 
-      // Self-referencing for threading
-      Comment.belongsTo(models.Comment, {
-        foreignKey: 'parentId',
-        as: 'parent',
-      });
+  if (userId) {
+    include.where = { userId };
+  }
 
-      Comment.hasMany(models.Comment, {
-        foreignKey: 'parentId',
-        as: 'replies',
-      });
+  return include;
+};
+
+/**
+ * Resolve visibility for a single photo.
+ */
+const resolvePhotoVisibility = async (photoId, userId, albumOwnerId) => {
+  const { Photo, PhotoVisibility } = db;
+
+  const photo = await Photo.findByPk(photoId, {
+    attributes: ['id', 'uploadedById', 'visibilityType'],
+  });
+
+  if (!photo) {
+    throw new NotFoundError('Photo');
+  }
+
+  // Owner/uploader bypass
+  if (userId && (userId === albumOwnerId || userId === photo.uploadedById)) {
+    return { allowed: true, reason: 'Owner or uploader bypass' };
+  }
+
+  if (photo.visibilityType === PHOTO_VISIBILITY.ALBUM_DEFAULT) {
+    return { allowed: true, reason: 'Album default visibility' };
+  }
+
+  if (!userId) {
+    return {
+      allowed: false,
+      reason: 'Authentication required to view this photo',
+    };
+  }
+
+  if (photo.visibilityType === PHOTO_VISIBILITY.HIDDEN) {
+    return {
+      allowed: false,
+      reason: 'This photo is hidden',
+    };
+  }
+
+  const allowlistEntry = await PhotoVisibility.findOne({
+    where: { photoId, userId },
+    attributes: ['id'],
+  });
+
+  if (allowlistEntry) {
+    return { allowed: true, reason: 'User is in restricted allowlist' };
+  }
+
+  return {
+    allowed: false,
+    reason: 'You are not allowed to view this restricted photo',
+  };
+};
+
+/**
+ * Update photo visibility + restricted allowlist records.
+ * Permission: uploader or album admin+.
+ */
+const setPhotoVisibility = async (
+  photoId,
+  visibilityType,
+  allowedUserIds = [],
+  userId,
+  systemRole = 'user'
+) => {
+  const { Photo, PhotoVisibility, AlbumMember } = db;
+
+  if (!Object.values(PHOTO_VISIBILITY).includes(visibilityType)) {
+    throw new ValidationError(`Invalid visibility type: ${visibilityType}`);
+  }
+
+  const photo = await Photo.findByPk(photoId);
+  if (!photo) throw new NotFoundError('Photo');
+
+  const isUploader = photo.uploadedById === userId;
+  const isAlbumAdmin = (
+    await albumPermissionService.resolvePermission(
+      photo.albumId,
+      userId,
+      'photo:delete',
+      systemRole
+    )
+  ).allowed;
+
+  if (!isUploader && !isAlbumAdmin) {
+    throw new ForbiddenError('Only the uploader or album admin can change photo visibility');
+  }
+
+  if (visibilityType === PHOTO_VISIBILITY.RESTRICTED && allowedUserIds.length === 0) {
+    throw new ValidationError('allowedUserIds required for restricted photos');
+  }
+
+  if (visibilityType !== PHOTO_VISIBILITY.RESTRICTED && allowedUserIds.length > 0) {
+    throw new ValidationError('allowedUserIds can only be used with restricted visibility');
+  }
+
+  if (visibilityType === PHOTO_VISIBILITY.RESTRICTED && allowedUserIds.length > 0) {
+    const members = await AlbumMember.findAll({
+      where: {
+        albumId: photo.albumId,
+        userId: { [Op.in]: allowedUserIds },
+      },
+      attributes: ['userId'],
+    });
+
+    if (members.length !== allowedUserIds.length) {
+      const foundUserIds = members.map((m) => m.userId);
+      const invalidUserIds = allowedUserIds.filter((id) => !foundUserIds.includes(id));
+      throw new ValidationError(`Users not found in album: ${invalidUserIds.join(', ')}`);
     }
   }
 
-  Comment.init(
-    {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: () => uuidv4(),
-        primaryKey: true,
-        allowNull: false,
-      },
-      photoId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: 'photos', key: 'id' },
-      },
-      userId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: 'users', key: 'id' },
-      },
-      // Null = top-level comment, UUID = reply to another comment
-      parentId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: 'comments', key: 'id' },
-      },
-      content: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-        validate: { len: [1, 5000] },
-      },
-      // Metadata: edited timestamps, reaction counts (future), mentions
-      metadata: {
-        type: DataTypes.JSONB,
-        allowNull: false,
-        defaultValue: {},
-      },
-      // When comment was last edited (null if never edited)
-      editedAt: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-    },
-    {
-      sequelize,
-      modelName: 'Comment',
-      tableName: 'comments',
-      paranoid: true, // Soft delete
-      underscored: true,
-      timestamps: true,
+  const t = await db.sequelize.transaction();
+  try {
+    await photo.update({ visibilityType }, { transaction: t });
 
-      indexes: [
-        { fields: ['photo_id'] },
-        { fields: ['user_id'] },
-        { fields: ['parent_id'] },
-        { fields: ['created_at'] },
-        // Primary query: all comments for a photo (with replies nested)
-        {
-          fields: ['photo_id', 'parent_id', 'created_at'],
-          name: 'idx_comments_photo_thread',
-        },
-      ],
+    await PhotoVisibility.destroy({
+      where: { photoId },
+      transaction: t,
+    });
+
+    if (visibilityType === PHOTO_VISIBILITY.RESTRICTED && allowedUserIds.length > 0) {
+      await PhotoVisibility.bulkCreate(
+        allowedUserIds.map((allowedUserId) => ({
+          photoId,
+          userId: allowedUserId,
+          grantedById: userId,
+        })),
+        { transaction: t }
+      );
     }
-  );
 
-  return Comment;
+    await t.commit();
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+};
+
+module.exports = {
+  buildVisibilityFilter,
+  buildVisibilityInclude,
+  resolvePhotoVisibility,
+  setPhotoVisibility,
 };

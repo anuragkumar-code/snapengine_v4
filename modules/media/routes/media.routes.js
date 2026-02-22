@@ -2,7 +2,7 @@
 
 const { Router } = require('express');
 const photoController = require('../controller/photo.controller');
-const photoBulkController = require('../controller/photoBulk.controller');
+const photoBulkController = require('../controller/photobulk.controller');
 const mediaController = require('../controller/media.controller');
 const { authenticate, optionalAuth } = require('../../../shared/middleware/authenticate');
 const { validate } = require('../../../shared/middleware/validate');

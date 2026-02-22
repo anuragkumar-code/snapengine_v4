@@ -251,7 +251,13 @@ const updatePhotoVisibility = async (photoId, visibilityType, allowedUserIds, us
   });
   if (!photo) throw new NotFoundError('Photo');
 
-  await photoVisibilityService.setPhotoVisibility(photoId, visibilityType, allowedUserIds, userId);
+  await photoVisibilityService.setPhotoVisibility(
+    photoId,
+    visibilityType,
+    allowedUserIds,
+    userId,
+    systemRole
+  );
 
   await activityLogService.logActivity({
     albumId: photo.albumId,
