@@ -21,6 +21,20 @@ const listMembers = async (req, res, next) => {
   }
 };
 
+const searchUsers = async (req, res, next) => {
+  try {
+    const users = await memberService.searchCandidateUsers(
+      req.params.albumId,
+      req.user.id,
+      req.user.role,
+      { q: req.query.q, limit: req.query.limit }
+    );
+    return ResponseFormatter.success(res, { users });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const addMember = async (req, res, next) => {
   try {
     const member = await memberService.addMember(
@@ -117,6 +131,7 @@ const getEffectivePermissions = async (req, res, next) => {
 
 module.exports = {
   listMembers,
+  searchUsers,
   addMember,
   removeMember,
   changeMemberRole,

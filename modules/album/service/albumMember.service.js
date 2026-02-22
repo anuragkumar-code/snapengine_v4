@@ -56,6 +56,45 @@ const listMembers = async (albumId, userId, systemRole, { page = 1, limit = 20 }
   };
 };
 
+// -- Search Candidate Users -----------------------------------------------------
+/**
+ * Search active users by email/firstName/lastName for add-member flow.
+ * Requires member:add permission and excludes users already in the album.
+ */
+const searchCandidateUsers = async (albumId, requesterId, systemRole, { q, limit = 10 } = {}) => {
+  await permissionService.assertPermission(albumId, requesterId, 'member:add', systemRole);
+
+  const { AlbumMember, User } = db;
+  const { Op } = require('sequelize');
+
+  const memberships = await AlbumMember.findAll({
+    where: { albumId },
+    attributes: ['userId'],
+  });
+  const existingUserIds = memberships.map((m) => m.userId);
+  const search = q.trim();
+  const where = {
+    status: 'active',
+    [Op.or]: [
+      { email: { [Op.iLike]: `%${search}%` } },
+      { firstName: { [Op.iLike]: `%${search}%` } },
+      { lastName: { [Op.iLike]: `%${search}%` } },
+    ],
+  };
+
+  if (existingUserIds.length > 0) {
+    where.id = { [Op.notIn]: existingUserIds };
+  }
+
+  const users = await User.findAll({
+    where,
+    attributes: ['id', 'firstName', 'lastName', 'email', 'avatarUrl'],
+    limit,
+    order: [['firstName', 'ASC'], ['lastName', 'ASC']],
+  });
+
+  return users.map((u) => u.toSafeJSON());
+};
 // ── Add Member ─────────────────────────────────────────────────────────────
 /**
  * Add a user directly to an album (no invitation needed).
@@ -310,6 +349,7 @@ const getMemberEffectivePermissions = async (albumId, targetUserId, requesterId,
 
 module.exports = {
   listMembers,
+  searchCandidateUsers,
   addMember,
   removeMember,
   changeMemberRole,
@@ -317,3 +357,4 @@ module.exports = {
   removePermissionOverride,
   getMemberEffectivePermissions,
 };
+

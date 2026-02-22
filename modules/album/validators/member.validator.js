@@ -43,6 +43,12 @@ const listMembers = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(20),
 });
 
+const searchMembers = Joi.object({
+  q: Joi.string().trim().min(2).max(100).required()
+    .messages({ 'string.min': 'Search query must be at least 2 characters' }),
+  limit: Joi.number().integer().min(1).max(20).default(10),
+});
+
 const memberUserIdParam = Joi.object({
   albumId: Joi.string().uuid().required(),
   userId: Joi.string().uuid().required(),
@@ -59,6 +65,7 @@ module.exports = {
   changeMemberRole,
   setPermissionOverride,
   listMembers,
+  searchMembers,
   memberUserIdParam,
   memberActionParam,
 };

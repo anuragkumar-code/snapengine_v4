@@ -106,6 +106,14 @@ router.post(
   memberController.addMember
 );
 
+router.get(
+  '/:albumId/members/search',
+  authenticate,
+  validate(albumValidator.albumIdParam, 'params'),
+  validate(memberValidator.searchMembers, 'query'),
+  memberController.searchUsers
+);
+
 router.delete(
   '/:albumId/members/:userId',
   authenticate,
