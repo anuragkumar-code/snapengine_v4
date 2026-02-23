@@ -3,6 +3,7 @@
 const memberService = require('../service/albumMember.service');
 const ResponseFormatter = require('../../../shared/utils/ResponseFormatter');
 const { parsePagination, buildMeta } = require('../../../shared/utils/pagination');
+const logger = require('../../../infrastructure/logger');
 
 /**
  * Member Controller
@@ -117,14 +118,32 @@ const removePermissionOverride = async (req, res, next) => {
 
 const getEffectivePermissions = async (req, res, next) => {
   try {
+    logger.info('[MemberController] Effective permissions request', {
+      albumId: req.params.albumId,
+      targetUserId: req.params.userId,
+      requesterId: req.user.id,
+      requesterRole: req.user.role,
+    });
     const permissions = await memberService.getMemberEffectivePermissions(
       req.params.albumId,
       req.params.userId,
       req.user.id,
       req.user.role
     );
+    logger.info('[MemberController] Effective permissions resolved', {
+      albumId: req.params.albumId,
+      targetUserId: req.params.userId,
+      resolvedRole: permissions.role,
+      effectiveCount: permissions.effectivePermissions?.length || 0,
+    });
     return ResponseFormatter.success(res, { permissions });
   } catch (err) {
+    logger.error('[MemberController] Effective permissions failed', {
+      albumId: req.params.albumId,
+      targetUserId: req.params.userId,
+      requesterId: req.user.id,
+      error: err.message,
+    });
     next(err);
   }
 };
