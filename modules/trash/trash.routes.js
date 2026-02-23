@@ -25,6 +25,12 @@ const listQuery = Joi.object({
 const emptyTrashParam = Joi.object({
   type: Joi.string().valid('albums', 'photos').required(),
 });
+const albumParam = Joi.object({
+  albumId: Joi.string().uuid().required(),
+});
+const photoParam = Joi.object({
+  photoId: Joi.string().uuid().required(),
+});
 
 /**
  * @route   GET /api/v1/trash/albums
@@ -61,6 +67,20 @@ router.delete(
   authenticate,
   validate(emptyTrashParam, 'params'),
   trashController.emptyTrash
+);
+
+router.delete(
+  '/albums/:albumId',
+  authenticate,
+  validate(albumParam, 'params'),
+  trashController.permanentlyDeleteAlbum
+);
+
+router.delete(
+  '/photos/:photoId',
+  authenticate,
+  validate(photoParam, 'params'),
+  trashController.permanentlyDeletePhoto
 );
 
 module.exports = router;

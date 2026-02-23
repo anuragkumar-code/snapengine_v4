@@ -48,8 +48,28 @@ const emptyTrash = async (req, res, next) => {
   }
 };
 
+const permanentlyDeleteAlbum = async (req, res, next) => {
+  try {
+    await trashService.permanentlyDeleteAlbum(req.user.id, req.params.albumId);
+    return ResponseFormatter.noContent(res);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const permanentlyDeletePhoto = async (req, res, next) => {
+  try {
+    await trashService.permanentlyDeletePhoto(req.user.id, req.params.photoId);
+    return ResponseFormatter.noContent(res);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   listTrashedAlbums,
   listTrashedPhotos,
+  permanentlyDeleteAlbum,
+  permanentlyDeletePhoto,
   emptyTrash,
 };

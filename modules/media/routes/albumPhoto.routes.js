@@ -2,6 +2,7 @@
 
 const { Router } = require('express');
 const photoController = require('../controller/photo.controller');
+const photoBulkController = require('../controller/photobulk.controller');
 
 const { authenticate, optionalAuth } = require('../../../shared/middleware/authenticate');
 const { validate } = require('../../../shared/middleware/validate');
@@ -53,6 +54,32 @@ router.post(
   photoUpload.single('photo'),
   validate(mediaValidator.albumIdParam, 'params'),
   photoController.upload
+);
+
+/**
+ * @route   POST /api/v1/albums/:albumId/photos/bulk-delete
+ * @desc    Bulk delete photos (move to trash)
+ * @access  Authenticated — Uploader or Album Admin+
+ */
+router.post(
+  '/:albumId/photos/bulk-delete',
+  authenticate,
+  validate(mediaValidator.albumIdParam, 'params'),
+  validate(mediaValidator.bulkDeletePhotos, 'body'),
+  photoBulkController.bulkDelete
+);
+
+/**
+ * @route   POST /api/v1/albums/:albumId/photos/bulk-visibility
+ * @desc    Bulk change photo visibility
+ * @access  Authenticated — Uploader or Album Admin+
+ */
+router.post(
+  '/:albumId/photos/bulk-visibility',
+  authenticate,
+  validate(mediaValidator.albumIdParam, 'params'),
+  validate(mediaValidator.bulkChangeVisibility, 'body'),
+  photoBulkController.bulkChangeVisibility
 );
 
 module.exports = router;

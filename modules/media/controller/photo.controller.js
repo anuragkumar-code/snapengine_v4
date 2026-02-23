@@ -48,13 +48,7 @@ const upload = async (req, res, next) => {
 
     // If all failed
     if (result.uploaded.length === 0) {
-      return ResponseFormatter.error(
-        res,
-        400,
-        'UPLOAD_FAILED',
-        'All uploads failed',
-        result.failed
-      );
+      throw new ValidationError('All uploads failed', result.failed);
     }
 
     // If partial success

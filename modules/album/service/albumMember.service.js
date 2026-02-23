@@ -316,16 +316,51 @@ const removePermissionOverride = async (albumId, targetUserId, action, requester
 const getMemberEffectivePermissions = async (albumId, targetUserId, requesterId, systemRole) => {
   await permissionService.assertPermission(albumId, requesterId, 'album:view', systemRole);
 
-  const { AlbumMember, AlbumPermissionOverride } = db;
+  const { Album, AlbumMember, AlbumPermissionOverride } = db;
+  const album = await Album.findByPk(albumId);
+  if (!album) throw new NotFoundError('Album');
+
+  const { ROLE_PERMISSIONS } = permissionService;
+  const isOwnerTarget = targetUserId === album.ownerId;
+  const isTargetingSelfSystemAdmin = targetUserId === requesterId && systemRole === 'admin';
+
+  // Owner and self system-admin can have full access even without AlbumMember row.
+  if (isOwnerTarget || isTargetingSelfSystemAdmin) {
+    const basePermissions = ROLE_PERMISSIONS[ALBUM_ROLE.OWNER] || new Set();
+    logger.info('[MemberService] Effective permissions owner/system-admin fallback', {
+      albumId,
+      targetUserId,
+      requesterId,
+      systemRole,
+      isOwnerTarget,
+      isTargetingSelfSystemAdmin,
+    });
+    return {
+      memberId: null,
+      userId: targetUserId,
+      role: ALBUM_ROLE.OWNER,
+      basePermissions: Array.from(basePermissions),
+      overrides: [],
+      effectivePermissions: Array.from(basePermissions),
+    };
+  }
 
   const member = await AlbumMember.findOne({
     where: { albumId, userId: targetUserId },
     include: [{ model: AlbumPermissionOverride, as: 'permissionOverrides', required: false }],
   });
 
-  if (!member) throw new NotFoundError('Member');
+  if (!member) {
+    logger.warn('[MemberService] Effective permissions member missing', {
+      albumId,
+      targetUserId,
+      requesterId,
+      systemRole,
+      albumOwnerId: album.ownerId,
+    });
+    throw new NotFoundError('Member');
+  }
 
-  const { ROLE_PERMISSIONS } = permissionService;
   const basePermissions = ROLE_PERMISSIONS[member.role] || new Set();
   const overrides = member.permissionOverrides || [];
 

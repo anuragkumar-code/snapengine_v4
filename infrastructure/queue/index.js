@@ -3,6 +3,7 @@
 const { Queue, Worker, QueueEvents } = require('bullmq');
 const { bullMQConnection } = require('../redis');
 const logger = require('../logger');
+const config = require('../../config');
 
 /**
  * Queue Infrastructure

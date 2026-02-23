@@ -83,7 +83,7 @@ const config = {
   rateLimit: {
     global: {
       windowMs: _int('RATE_LIMIT_WINDOW_MS', 900000),
-      max: _int('RATE_LIMIT_MAX_REQUESTS', 100),
+      max: _int('RATE_LIMIT_MAX_REQUESTS', 1000),
     },
     auth: {
       windowMs: _int('AUTH_RATE_LIMIT_WINDOW_MS', 900000),
