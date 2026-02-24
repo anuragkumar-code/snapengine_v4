@@ -120,6 +120,7 @@ class LocalStorageStrategy extends StorageProvider {
     } catch (err) {
       // File already gone — treat as success (idempotent)
       if (err.code !== 'ENOENT') throw err;
+      
     }
   }
 
