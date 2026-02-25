@@ -2,7 +2,6 @@
 
 const { Op } = require('sequelize');
 const db = require('../../../infrastructure/database');
-const albumPermissionService = require('../../album/service/albumPermission.service');
 const { PHOTO_VISIBILITY } = require('../../../shared/constants');
 const {
   NotFoundError,
@@ -13,32 +12,26 @@ const {
 /**
  * PhotoVisibilityService
  *
- * Owns all per-photo visibility logic:
- *  - Query filters/includes for list/search endpoints
- *  - Single-photo visibility checks
- *  - Visibility updates + restricted allowlist persistence
+ * Rules enforced:
+ * - Only album owner (or system admin) can manage photo visibility
+ * - Hidden photos are owner-only
+ * - Restricted photos are visible only to allowlisted members
  */
 
-/**
- * Build WHERE clause for listing/searching photos in a specific album.
- * Requires the album owner id for owner bypass decisions.
- */
 const buildVisibilityFilter = (userId, albumOwnerId) => {
-  // Album owner can see all photo visibility states.
   if (userId && albumOwnerId && userId === albumOwnerId) {
     return {};
   }
 
-  // Unauthenticated users can only see album-default photos.
   if (!userId) {
-    return { visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT };
+    return {
+      visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT,
+    };
   }
 
   return {
     [Op.or]: [
       { visibilityType: PHOTO_VISIBILITY.ALBUM_DEFAULT },
-      { visibilityType: PHOTO_VISIBILITY.HIDDEN, uploadedById: userId },
-      { visibilityType: PHOTO_VISIBILITY.RESTRICTED, uploadedById: userId },
       {
         visibilityType: PHOTO_VISIBILITY.RESTRICTED,
         '$visibilityAllowlist.userId$': userId,
@@ -47,9 +40,6 @@ const buildVisibilityFilter = (userId, albumOwnerId) => {
   };
 };
 
-/**
- * Build include used by buildVisibilityFilter for restricted-photo allowlist checks.
- */
 const buildVisibilityInclude = (userId) => {
   const include = {
     model: db.PhotoVisibility,
@@ -65,23 +55,19 @@ const buildVisibilityInclude = (userId) => {
   return include;
 };
 
-/**
- * Resolve visibility for a single photo.
- */
 const resolvePhotoVisibility = async (photoId, userId, albumOwnerId) => {
   const { Photo, PhotoVisibility } = db;
 
   const photo = await Photo.findByPk(photoId, {
-    attributes: ['id', 'uploadedById', 'visibilityType'],
+    attributes: ['id', 'visibilityType'],
   });
 
   if (!photo) {
     throw new NotFoundError('Photo');
   }
 
-  // Owner/uploader bypass
-  if (userId && (userId === albumOwnerId || userId === photo.uploadedById)) {
-    return { allowed: true, reason: 'Owner or uploader bypass' };
+  if (userId && userId === albumOwnerId) {
+    return { allowed: true, reason: 'Album owner bypass' };
   }
 
   if (photo.visibilityType === PHOTO_VISIBILITY.ALBUM_DEFAULT) {
@@ -98,7 +84,7 @@ const resolvePhotoVisibility = async (photoId, userId, albumOwnerId) => {
   if (photo.visibilityType === PHOTO_VISIBILITY.HIDDEN) {
     return {
       allowed: false,
-      reason: 'This photo is hidden',
+      reason: 'This photo is private to the album owner',
     };
   }
 
@@ -117,10 +103,6 @@ const resolvePhotoVisibility = async (photoId, userId, albumOwnerId) => {
   };
 };
 
-/**
- * Update photo visibility + restricted allowlist records.
- * Permission: uploader or album admin+.
- */
 const setPhotoVisibility = async (
   photoId,
   visibilityType,
@@ -128,27 +110,21 @@ const setPhotoVisibility = async (
   userId,
   systemRole = 'user'
 ) => {
-  const { Photo, PhotoVisibility, AlbumMember } = db;
+  const { Photo, PhotoVisibility, AlbumMember, Album } = db;
 
   if (!Object.values(PHOTO_VISIBILITY).includes(visibilityType)) {
     throw new ValidationError(`Invalid visibility type: ${visibilityType}`);
   }
 
-  const photo = await Photo.findByPk(photoId);
+  const photo = await Photo.findByPk(photoId, {
+    include: [{ model: Album, as: 'album', attributes: ['id', 'ownerId'] }],
+  });
   if (!photo) throw new NotFoundError('Photo');
 
-  const isUploader = photo.uploadedById === userId;
-  const isAlbumAdmin = (
-    await albumPermissionService.resolvePermission(
-      photo.albumId,
-      userId,
-      'photo:delete',
-      systemRole
-    )
-  ).allowed;
-
-  if (!isUploader && !isAlbumAdmin) {
-    throw new ForbiddenError('Only the uploader or album admin can change photo visibility');
+  const isAlbumOwner = photo.album && photo.album.ownerId === userId;
+  const isSystemAdmin = systemRole === 'admin';
+  if (!isAlbumOwner && !isSystemAdmin) {
+    throw new ForbiddenError('Only the album owner can change photo visibility');
   }
 
   if (visibilityType === PHOTO_VISIBILITY.RESTRICTED && allowedUserIds.length === 0) {

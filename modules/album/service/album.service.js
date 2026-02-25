@@ -142,8 +142,13 @@ const listAlbums = async (userId, { page = 1, limit = 20, ownerId } = {}) => {
       ],
     };
   } else {
-    // Unauthenticated: public only
-    where.isPublic = true;
+    // Public album discovery is only for authenticated platform users.
+    return {
+      albums: [],
+      total: 0,
+      page,
+      limit,
+    };
   }
 
   const { rows, count } = await Album.findAndCountAll({

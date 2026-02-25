@@ -2,7 +2,7 @@
 
 const { Router } = require('express');
 const searchController = require('./search.controller');
-const { optionalAuth } = require('../../shared/middleware/authenticate');
+const { authenticate } = require('../../shared/middleware/authenticate');
 const { validate } = require('../../shared/middleware/validate');
 const searchValidator = require('./validators/search.validator');
 
@@ -23,7 +23,7 @@ const router = Router();
 /**
  * @route   GET /api/v1/search
  * @desc    Unified search across albums and photos
- * @access  Public (enriched if authenticated)
+ * @access  Authenticated users only
  * @query   q - search query
  * @query   context - 'albums' | 'photos'
  * @query   albumId - (optional) for photo search within album
@@ -32,7 +32,7 @@ const router = Router();
  */
 router.get(
   '/',
-  optionalAuth,
+  authenticate,
   validate(searchValidator.searchQuery, 'query'),
   searchController.search
 );
