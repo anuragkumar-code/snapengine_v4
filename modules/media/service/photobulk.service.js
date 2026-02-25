@@ -3,7 +3,6 @@
 const db = require('../../../infrastructure/database');
 const { Op } = require('sequelize');
 const albumPermissionService = require('../../album/service/albumPermission.service');
-const photoVisibilityService = require('./photoVisibility.service');
 const activityLogService = require('../../album/service/albumActivityLog.service');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../../shared/utils/AppError');
 const { PHOTO_VISIBILITY, ACTIVITY_TYPE } = require('../../../shared/constants');
@@ -58,29 +57,7 @@ const bulkDeletePhotos = async (albumId, photoIds, userId, systemRole, ipAddress
     throw new NotFoundError(`Photos not found in album: ${missingIds.join(', ')}`);
   }
 
-  // ── Permission check: user must have permission for ALL photos ────────
-  // User can delete if they are:
-  //  1. Photo uploader, OR
-  //  2. Album admin+
-  const album = photos[0].album;
-  const isAlbumAdmin = (
-    await albumPermissionService.resolvePermission(albumId, userId, 'photo:delete', systemRole)
-  ).allowed;
-
-  const deniedPhotoIds = [];
-
-  for (const photo of photos) {
-    const isUploader = photo.uploadedById === userId;
-    if (!isUploader && !isAlbumAdmin) {
-      deniedPhotoIds.push(photo.id);
-    }
-  }
-
-  if (deniedPhotoIds.length > 0) {
-    throw new ForbiddenError(`Permission denied for ${deniedPhotoIds.length} photo(s)`, {
-      deniedPhotoIds,
-    });
-  }
+  await albumPermissionService.assertPermission(albumId, userId, 'photo:delete', systemRole);
 
   // ── Execute bulk delete (atomic transaction) ───────────────────────────
   const t = await db.sequelize.transaction();
@@ -181,28 +158,11 @@ const bulkChangeVisibility = async (
     throw new NotFoundError(`Photos not found in album: ${missingIds.join(', ')}`);
   }
 
-  // ── Permission check ───────────────────────────────────────────────────
-  // User can change visibility if they are:
-  //  1. Photo uploader, OR
-  //  2. Album admin+
   const album = photos[0].album;
-  const isAlbumAdmin = (
-    await albumPermissionService.resolvePermission(albumId, userId, 'photo:upload', systemRole)
-  ).allowed;
-
-  const deniedPhotoIds = [];
-
-  for (const photo of photos) {
-    const isUploader = photo.uploadedById === userId;
-    if (!isUploader && !isAlbumAdmin) {
-      deniedPhotoIds.push(photo.id);
-    }
-  }
-
-  if (deniedPhotoIds.length > 0) {
-    throw new ForbiddenError(`Permission denied for ${deniedPhotoIds.length} photo(s)`, {
-      deniedPhotoIds,
-    });
+  const isAlbumOwner = album && album.ownerId === userId;
+  const isSystemAdmin = systemRole === 'admin';
+  if (!isAlbumOwner && !isSystemAdmin) {
+    throw new ForbiddenError('Only the album owner can change photo visibility');
   }
 
   // ── Validate allowedUserIds are album members ──────────────────────────

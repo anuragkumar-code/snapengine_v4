@@ -274,23 +274,14 @@ const updatePhotoVisibility = async (photoId, visibilityType, allowedUserIds, us
 
 // ── Soft Delete Photo (Trash) ──────────────────────────────────────────────
 const deletePhoto = async (photoId, userId, systemRole, ipAddress) => {
-  const { Photo, Album } = db;
+  const { Photo } = db;
 
   const photo = await Photo.findByPk(photoId, {
-    include: [{ model: Album, as: 'album' }],
+    attributes: ['id', 'albumId', 'originalFilename'],
   });
   if (!photo) throw new NotFoundError('Photo');
 
-  // ── Permission: uploader or album admin+ ───────────────────────────────
-  const isUploader = photo.uploadedById === userId;
-  const canDelete = isUploader ||
-    (await albumPermissionService.resolvePermission(
-      photo.albumId, userId, 'photo:delete', systemRole
-    )).allowed;
-
-  if (!canDelete) {
-    throw new ForbiddenError('Only the uploader or album admin can delete this photo');
-  }
+  await albumPermissionService.assertPermission(photo.albumId, userId, 'photo:delete', systemRole);
 
   await photo.destroy(); // Soft delete (sets deletedAt)
 

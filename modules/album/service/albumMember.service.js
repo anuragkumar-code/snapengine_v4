@@ -250,62 +250,32 @@ const setPermissionOverride = async (
   albumId, targetUserId, action, granted, requesterId, systemRole, reason = null, ipAddress
 ) => {
   await permissionService.assertPermission(albumId, requesterId, 'album:manage_settings', systemRole);
-
-  const { AlbumMember, AlbumPermissionOverride } = db;
-
-  const targetMember = await AlbumMember.findOne({ where: { albumId, userId: targetUserId } });
-  if (!targetMember) throw new NotFoundError('Member');
-
-  if (targetMember.role === ALBUM_ROLE.OWNER) {
-    throw new ForbiddenError('Cannot set permission overrides for the album owner');
-  }
-
-  // Validate action is a known permission action
-  const { ACTIONS } = AlbumPermissionOverride;
-  if (!Object.values(ACTIONS).includes(action)) {
-    throw new ValidationError(`Unknown permission action: "${action}"`);
-  }
-
-  // Upsert: update if exists, create if not
-  const [override, created] = await AlbumPermissionOverride.findOrCreate({
-    where: { albumMemberId: targetMember.id, action },
-    defaults: {
-      albumId,
-      albumMemberId: targetMember.id,
-      action,
-      granted,
-      setById: requesterId,
-      reason,
-    },
+  logger.warn('[MemberService] Permission override rejected (disabled policy)', {
+    albumId,
+    targetUserId,
+    action,
+    granted,
+    reason,
+    ipAddress,
+    requesterId,
   });
-
-  if (!created) {
-    await override.update({ granted, setById: requesterId, reason });
-  }
-
-  logger.info('[MemberService] Permission override set', {
-    albumId, userId: targetUserId, action, granted,
-  });
-
-  return override.get({ plain: true });
+  throw new ValidationError(
+    'Permission overrides are disabled. Use album roles (owner/admin/contributor/viewer).'
+  );
 };
 
 // ── Remove Permission Override ─────────────────────────────────────────────
 const removePermissionOverride = async (albumId, targetUserId, action, requesterId, systemRole) => {
   await permissionService.assertPermission(albumId, requesterId, 'album:manage_settings', systemRole);
-
-  const { AlbumMember, AlbumPermissionOverride } = db;
-
-  const targetMember = await AlbumMember.findOne({ where: { albumId, userId: targetUserId } });
-  if (!targetMember) throw new NotFoundError('Member');
-
-  const deleted = await AlbumPermissionOverride.destroy({
-    where: { albumMemberId: targetMember.id, action },
+  logger.warn('[MemberService] Permission override removal rejected (disabled policy)', {
+    albumId,
+    targetUserId,
+    action,
+    requesterId,
   });
-
-  if (!deleted) throw new NotFoundError('Permission override');
-
-  logger.info('[MemberService] Permission override removed', { albumId, userId: targetUserId, action });
+  throw new ValidationError(
+    'Permission overrides are disabled. Use album roles (owner/admin/contributor/viewer).'
+  );
 };
 
 // ── Get Member Effective Permissions ──────────────────────────────────────
@@ -316,7 +286,7 @@ const removePermissionOverride = async (albumId, targetUserId, action, requester
 const getMemberEffectivePermissions = async (albumId, targetUserId, requesterId, systemRole) => {
   await permissionService.assertPermission(albumId, requesterId, 'album:view', systemRole);
 
-  const { Album, AlbumMember, AlbumPermissionOverride } = db;
+  const { Album, AlbumMember } = db;
   const album = await Album.findByPk(albumId);
   if (!album) throw new NotFoundError('Album');
 
@@ -347,7 +317,6 @@ const getMemberEffectivePermissions = async (albumId, targetUserId, requesterId,
 
   const member = await AlbumMember.findOne({
     where: { albumId, userId: targetUserId },
-    include: [{ model: AlbumPermissionOverride, as: 'permissionOverrides', required: false }],
   });
 
   if (!member) {
@@ -362,23 +331,14 @@ const getMemberEffectivePermissions = async (albumId, targetUserId, requesterId,
   }
 
   const basePermissions = ROLE_PERMISSIONS[member.role] || new Set();
-  const overrides = member.permissionOverrides || [];
-
-  const effectivePermissions = new Set(basePermissions);
-
-  // Apply overrides
-  overrides.forEach((o) => {
-    if (o.granted) effectivePermissions.add(o.action);
-    else effectivePermissions.delete(o.action);
-  });
 
   return {
     memberId: member.id,
     userId: targetUserId,
     role: member.role,
     basePermissions: Array.from(basePermissions),
-    overrides: overrides.map((o) => ({ action: o.action, granted: o.granted, reason: o.reason })),
-    effectivePermissions: Array.from(effectivePermissions),
+    overrides: [],
+    effectivePermissions: Array.from(basePermissions),
   };
 };
 
