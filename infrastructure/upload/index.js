@@ -118,7 +118,6 @@ class LocalStorageStrategy extends StorageProvider {
       await fs.remove(fullPath);
       logger.debug('[Upload] File deleted locally', { key });
     } catch (err) {
-      // File already gone — treat as success (idempotent)
       if (err.code !== 'ENOENT') throw err;
       
     }
